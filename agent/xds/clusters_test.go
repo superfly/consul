@@ -2,6 +2,7 @@ package xds
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -488,6 +489,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-with-cluster-override",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.ServiceMeta = make(map[string]string)
+				snap.ServiceMeta[fmt.Sprintf("%s.%s", structs.MetaTerminatingListener, "api")] = "{\"name\":\"envoy.filters.network.http_connection_manager\",\"typed_config\":{\"@type\":\"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager\",\"stat_prefix\":\"consul-ecs-lambda-test\",\"strip_matching_host_port\":true,\"route_config\":{\"name\":\"local_route\",\"virtual_hosts\":[{\"name\":\"local_service\",\"domains\":[\"*\"],\"routes\":[{\"match\":{\"prefix\":\"/\"},\"route\":{\"cluster\":\"consul-ecs-lambda-test\"}}]}]},\"http_filters\":[{\"name\":\"envoy.filters.http.aws_lambda\",\"typed_config\":{\"@type\":\"type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config\",\"arn\":\"arn:aws:lambda:us-east-2:977604411308:function:consul-ecs-lambda-test\",\"payload_passthrough\":true}},{\"name\":\"envoy.filters.http.router\"}]}}"
+			},
 		},
 		{
 			name:   "terminating-gateway-no-services",

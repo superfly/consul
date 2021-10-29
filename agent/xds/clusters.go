@@ -817,6 +817,15 @@ type gatewayClusterOpts struct {
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
 func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayClusterOpts) *envoy_cluster_v3.Cluster {
+	if rawCluster, ok := snap.ServiceMeta[fmt.Sprintf("%s.%s", structs.MetaTerminatingCluster, opts.name)]; ok {
+		cluster, err := makeClusterFromUserConfig(rawCluster)
+
+		if err != nil {
+			s.Logger.Error("Sometimes bad things happen when parsing a cluster", "error", err)
+		}
+		return cluster
+	}
+
 	cfg, err := ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns

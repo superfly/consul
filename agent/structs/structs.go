@@ -144,6 +144,9 @@ const (
 	// mesh gateway is usable for wan federation.
 	MetaWANFederationKey = "consul-wan-federation"
 
+	MetaTerminatingListener = "terminating-listener"
+	MetaTerminatingCluster  = "terminating-cluster"
+
 	// MetaExternalSource is the metadata key used when a resource is managed by a source outside Consul like nomad/k8s
 	MetaExternalSource = "external-source"
 
