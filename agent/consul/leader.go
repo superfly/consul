@@ -134,13 +134,8 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
-	for name, segment := range s.LANSegments() {
-		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
-			s.logger.Warn("failed to broadcast new leader event on segment",
-				"segment", name,
-				"error", err,
-			)
-		}
+	if err := s.LANSendUserEvent(newLeaderEvent, payload, false); err != nil {
+		s.logger.Warn("failed to broadcast new leader event", "error", err)
 	}
 
 	// Reconcile channel is only used once initial reconcile
@@ -375,7 +370,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
-	if !s.InACLDatacenter() {
+	if !s.InPrimaryDatacenter() {
 		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
@@ -389,7 +384,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 	}
 
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
 		// TODO(partitions): initialize acls in all of the partitions?
@@ -623,7 +618,7 @@ func (s *Server) stopACLUpgrade() {
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		return
 	}
 

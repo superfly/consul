@@ -1876,6 +1876,18 @@ type CheckID struct {
 	EnterpriseMeta
 }
 
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (c CheckID) NamespaceOrDefault() string {
+	return c.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (c CheckID) PartitionOrDefault() string {
+	return c.EnterpriseMeta.PartitionOrDefault()
+}
+
 func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
@@ -2244,6 +2256,11 @@ func (d *DirEntry) Equal(o *DirEntry) bool {
 		d.Session == o.Session
 }
 
+// IDValue implements the state.singleValueID interface for indexing.
+func (d *DirEntry) IDValue() string {
+	return d.Key
+}
+
 type DirEntries []*DirEntry
 
 // KVSRequest is used to operate on the Key-Value store
@@ -2329,6 +2346,11 @@ type Session struct {
 type ServiceCheck struct {
 	ID        string
 	Namespace string
+}
+
+// IDValue implements the state.singleValueID interface for indexing.
+func (s *Session) IDValue() string {
+	return s.ID
 }
 
 func (s *Session) UnmarshalJSON(data []byte) (err error) {
@@ -2592,11 +2614,16 @@ type KeyringResponse struct {
 	WAN         bool
 	Datacenter  string
 	Segment     string
+	Partition   string            `json:",omitempty"`
 	Messages    map[string]string `json:",omitempty"`
 	Keys        map[string]int
 	PrimaryKeys map[string]int
 	NumNodes    int
 	Error       string `json:",omitempty"`
+}
+
+func (r *KeyringResponse) PartitionOrDefault() string {
+	return PartitionOrDefault(r.Partition)
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

@@ -263,10 +263,10 @@ node "foo" {
 
 func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
 	t.Helper()
-	return createTokenWithPolicyName(t, "the-policy", cc, policyRules)
+	return createTokenWithPolicyName(t, cc, "the-policy", policyRules, "root")
 }
 
-func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCodec, policyRules string) string {
+func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName string, policyRules string, token string) string {
 	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
@@ -275,25 +275,25 @@ func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCod
 			Name:  policyName,
 			Rules: policyRules,
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err := msgpackrpc.CallWithCodec(cc, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 	require.NoError(t, err)
 
-	token, err := uuid.GenerateUUID()
+	secretId, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			SecretID: token,
+			SecretID: secretId,
 			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
 		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
 	require.NoError(t, err)
-	return token
+	return secretId
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
@@ -3438,7 +3438,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 node "node" {
   policy = "write"
 }
@@ -3483,7 +3483,7 @@ node "node" {
 	}
 
 	// Chain on a basic service policy.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "service" {
   policy = "write"
 }
@@ -3513,7 +3513,7 @@ service "service" {
 	}
 
 	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "other" {
   policy = "write"
 }
@@ -3587,7 +3587,7 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "other" {
   policy = "deny"
 }
@@ -3617,7 +3617,7 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node" {
   policy = "deny"
 }
@@ -3664,7 +3664,7 @@ func TestVetDeregisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 node "node" {
   policy = "write"
 }
@@ -3677,7 +3677,7 @@ node "node" {
 		t.Fatalf("err: %v", err)
 	}
 
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service "my-service" {
 	  policy = "write"
 	}

@@ -1188,6 +1188,7 @@ func (l *State) SyncChanges() error {
 	// Sync the node level info if we need to.
 	// At the start to guarantee sync even if services or checks fail,
 	// which is more likely because there are more syncs happening for them.
+
 	if l.nodeInfoInSync {
 		l.logger.Debug("Node info in sync")
 	} else {
