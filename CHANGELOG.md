@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.11.0-dev (December 01, 2021)
 
 ## 1.11.0-beta2 (November 02, 2021)
 
