@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,8 +13,6 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -120,11 +119,7 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
 	}
 
-	ports := freeport.MustTake(2)
-	returnPortsFn := func() {
-		freeport.Return(ports)
-	}
-
+	ports := freeport.GetN(t, 2)
 	var (
 		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
 		clusterAddr = fmt.Sprintf("127.0.0.1:%d", ports[1])
@@ -136,7 +131,6 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		Address: "http://" + clientAddr,
 	})
 	if err != nil {
-		returnPortsFn()
 		return nil, err
 	}
 	client.SetToken(token)
@@ -156,20 +150,18 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 	cmd.Stdout = ioutil.Discard
 	cmd.Stderr = ioutil.Discard
 	if err := cmd.Start(); err != nil {
-		returnPortsFn()
 		return nil, err
 	}
 
 	testVault := &TestVaultServer{
-		RootToken:     token,
-		Addr:          "http://" + clientAddr,
-		cmd:           cmd,
-		client:        client,
-		returnPortsFn: returnPortsFn,
+		RootToken: token,
+		Addr:      "http://" + clientAddr,
+		cmd:       cmd,
+		client:    client,
 	}
 	t.Cleanup(func() {
 		if err := testVault.Stop(); err != nil {
-			t.Log("failed to stop vault server: %w", err)
+			t.Logf("failed to stop vault server: %v", err)
 		}
 	})
 
@@ -181,9 +173,6 @@ type TestVaultServer struct {
 	Addr      string
 	cmd       *exec.Cmd
 	client    *vaultapi.Client
-
-	// returnPortsFn will put the ports claimed for the test back into the
-	returnPortsFn func()
 }
 
 var printedVaultVersion sync.Once
@@ -219,7 +208,7 @@ func (v *TestVaultServer) Stop() error {
 	}
 
 	if v.cmd.Process != nil {
-		if err := v.cmd.Process.Signal(os.Interrupt); err != nil {
+		if err := v.cmd.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("failed to kill vault server: %v", err)
 		}
 	}
@@ -229,40 +218,9 @@ func (v *TestVaultServer) Stop() error {
 	if err := v.cmd.Wait(); err != nil {
 		return err
 	}
-
-	if v.returnPortsFn != nil {
-		v.returnPortsFn()
-	}
-
 	return nil
 }
 
-func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interface{}, error) {
-	idx, _, err := store.CAConfig(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	switch req.Op {
-	case structs.CAOpSetProviderState:
-		_, err := store.CASetProviderState(idx+1, req.ProviderState)
-		if err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpDeleteProviderState:
-		if err := store.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpIncrementProviderSerialNumber:
-		return uint64(2), nil
-	default:
-		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
-	}
-}
 func requireTrailingNewline(t testing.T, leafPEM string) {
 	t.Helper()
 	if len(leafPEM) == 0 {
