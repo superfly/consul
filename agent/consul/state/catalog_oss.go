@@ -22,9 +22,22 @@ func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) s
 	return "service_kind." + kind.Normalized()
 }
 
+func nodeIndexName(name string, _ *structs.EnterpriseMeta) string {
+	return fmt.Sprintf("node.%s", name)
+}
+
 func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
 	// overall nodes index
 	if err := indexUpdateMaxTxn(tx, idx, tableNodes); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
+func catalogUpdateNodeIndexes(tx WriteTxn, nodeName string, idx uint64, _ *structs.EnterpriseMeta) error {
+	// per-node index
+	if err := indexUpdateMaxTxn(tx, idx, nodeIndexName(nodeName, nil)); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -78,6 +91,10 @@ func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
 		return err
 	}
 
+	if err := catalogUpdateNodeIndexes(tx, node.Node, node.ModifyIndex, node.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
 	// Update the node's service indexes as the node information is included
 	// in health queries and we would otherwise miss node updates in some cases
 	// for those queries.
@@ -106,11 +123,20 @@ func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 		return err
 	}
 
+	// Update the node's index as the service information is included in node catalog queries.
+	if err := catalogUpdateNodeIndexes(tx, svc.Node, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func catalogNodesMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, tableNodes)
+}
+
+func catalogNodeMaxIndex(tx ReadTxn, nodeName string, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, nodeIndexName(nodeName, nil))
 }
 
 func catalogServicesMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {

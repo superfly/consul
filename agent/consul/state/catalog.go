@@ -676,6 +676,9 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string, entMeta 
 	if err := catalogUpdateNodesIndexes(tx, idx, entMeta); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	if err := catalogUpdateNodeIndexes(tx, nodeName, idx, entMeta); err != nil {
+		return fmt.Errorf("failed updating node index: %s", err)
+	}
 
 	// Invalidate any sessions for this node.
 	toDelete, err := allNodeSessionsTxn(tx, nodeName, entMeta.PartitionOrDefault())
@@ -1494,9 +1497,6 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
-	// Get the table index.
-	idx := catalogMaxIndex(tx, entMeta, false)
-
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{Value: nodeNameOrID, EnterpriseMeta: *entMeta})
 	if err != nil {
@@ -1550,6 +1550,9 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 		return true, 0, nil, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
 	ws.Add(services.WatchCh())
+
+	// Get the node index.
+	idx := catalogNodeMaxIndex(tx, nodeName, entMeta)
 
 	return false, idx, node, services, nil
 }
@@ -1700,6 +1703,10 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 	}
 	if err := catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	if err := catalogUpdateNodeIndexes(tx, nodeName, idx, entMeta); err != nil {
+		return err
 	}
 
 	svc := service.(*structs.ServiceNode)
