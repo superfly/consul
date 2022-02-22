@@ -391,6 +391,10 @@ func (c *CheckHTTP) Start() {
 		c.httpClient = &http.Client{
 			Timeout:   10 * time.Second,
 			Transport: trans,
+			// Disable HTTP redirects.
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		}
 		if c.Timeout > 0 {
 			c.httpClient.Timeout = c.Timeout
