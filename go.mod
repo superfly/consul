@@ -8,6 +8,8 @@ replace github.com/hashicorp/consul/sdk => ./sdk
 
 replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
+replace github.com/hashicorp/go-sockaddr => github.com/wjordan/go-sockaddr v0.0.0-20221216234625-7a8ce1c93a38
+
 require (
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
