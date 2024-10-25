@@ -184,6 +184,10 @@ type QueryOptions struct {
 	// Filter requests filtering data prior to it being returned. The string
 	// is a go-bexpr compatible expression.
 	Filter string
+
+	// Skip syncing with the server, a potentially-blocking operation
+	// but still queue a sync for later
+	SkipSync bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -831,6 +835,10 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		if len(cc) > 0 {
 			r.header.Set("Cache-Control", strings.Join(cc, ", "))
 		}
+	}
+
+	if q.SkipSync {
+		r.params.Set("sync", "false")
 	}
 
 	r.ctx = q.ctx

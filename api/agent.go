@@ -294,6 +294,9 @@ type ServiceRegisterOpts struct {
 	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
+	// Prevent syncing (possibly blocking) with the server
+	SkipSync bool
+
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use WithContext() to set the context.
 	ctx context.Context
@@ -779,6 +782,7 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
 	opts := ServiceRegisterOpts{
 		ReplaceExistingChecks: false,
+		SkipSync:              false,
 	}
 
 	return a.serviceRegister(service, opts)
@@ -796,6 +800,9 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	r.ctx = opts.ctx
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
+	}
+	if opts.SkipSync {
+		r.params.Set("sync", "false")
 	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
