@@ -36,7 +36,7 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-connlimit v0.3.0
+	github.com/hashicorp/go-connlimit v0.3.1
 	github.com/hashicorp/go-discover v0.0.0-20210818145131-c573d69da192
 	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-memdb v1.3.2
@@ -79,7 +79,7 @@ require (
 	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shirou/gopsutil/v3 v3.21.10
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.10.0
 	go.etcd.io/bbolt v1.3.5
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.1.10
