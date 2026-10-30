@@ -1,10 +1,11 @@
-# Fly.io owners first; upstream entries below are kept for reference.
+# Fly.io owners. Upstream entries below are commented out: CODEOWNERS is
+# last-match-wins and they would otherwise override this line.
 * @superfly/machines-team
 
 # Techical Writer Review
 
-/website/content/docs/ @hashicorp/consul-docs
-/website/content/commands/ @hashicorp/consul-docs
-/website/content/api-docs/ @hashicorp/consul-docs
+# /website/content/docs/ @hashicorp/consul-docs
+# /website/content/commands/ @hashicorp/consul-docs
+# /website/content/api-docs/ @hashicorp/consul-docs
 
 
