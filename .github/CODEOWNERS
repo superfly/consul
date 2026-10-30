@@ -1,6 +1,6 @@
 # Fly.io owners. Upstream entries below are commented out: CODEOWNERS is
 # last-match-wins and they would otherwise override this line.
-* @superfly/machines-team
+* @superfly/infra-ops
 
 # Techical Writer Review
 
